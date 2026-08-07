@@ -4,14 +4,10 @@
  */
 
 import React, { createContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { detectWallet, connectWallet, ConnectedSession } from '../api/midnight';
+import { detectWallet, connectWallet } from '../api/midnight';
 import { WalletState } from '../api/types';
 
-interface ExtendedWalletState extends WalletState {
-  session: ConnectedSession | null;
-}
-
-interface WalletContextType extends ExtendedWalletState {
+interface WalletContextType extends WalletState {
   isConnecting: boolean;
   walletStatus: 'checking' | 'detected' | 'not-found';
   connect: () => Promise<void>;
@@ -21,12 +17,11 @@ interface WalletContextType extends ExtendedWalletState {
 export const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [state, setState] = useState<ExtendedWalletState>({
+  const [state, setState] = useState<WalletState>({
     address: null,
     isConnected: false,
     walletType: null,
     network: null,
-    session: null,
   });
   const [isConnecting, setIsConnecting] = useState(false);
   const [walletStatus, setWalletStatus] = useState<'checking' | 'detected' | 'not-found'>('checking');
@@ -48,17 +43,16 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         throw new Error('No Midnight wallet found. Please install a wallet extension.');
       }
 
-      const session = await connectWallet(wallet, 'preprod');
+      const { address, walletName, networkId } = await connectWallet(wallet, 'preprod');
 
       setState({
-        address: session.unshieldedAddress,
+        address,
         isConnected: true,
-        walletType: session.providers.walletProvider ? (wallet.name || 'Midnight Wallet') : 'Midnight Wallet',
-        network: session.config.networkId,
-        session,
+        walletType: walletName,
+        network: networkId,
       });
       setWalletStatus('detected');
-      console.log('[MedLock] Connected:', session.unshieldedAddress);
+      console.log('[MedLock] Connected:', address);
     } catch (err) {
       console.error('[MedLock] Connection error:', err);
     } finally {
@@ -72,7 +66,6 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       isConnected: false,
       walletType: null,
       network: null,
-      session: null,
     });
     console.log('[MedLock] Disconnected');
   }, []);
