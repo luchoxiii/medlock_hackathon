@@ -59,7 +59,7 @@ export circuit verify_emergency_match(requiredBloodType: Bytes<32>): [] {
   const path = findDoctorPath(doctorPk);
   
   assert(
-    authorizedDoctors.checkRoot(merkleTreePathRoot<16, Bytes<32>>(path)),
+    authorizedDoctors.checkRoot(disclose(merkleTreePathRoot<16, Bytes<32>>(path))),
     "doctor not authorized"
   );
   
@@ -69,9 +69,10 @@ export circuit verify_emergency_match(requiredBloodType: Bytes<32>): [] {
   
   const nonce = attestationNonce();
   const nul = makeNullifier(doctorSk, nonce);
+  const nulDisclosed = disclose(nul);
   
-  assert(!nullifiers.member(nul), "attestation already used");
-  nullifiers.insert(disclose(nul));
+  assert(!nullifiers.member(nulDisclosed), "attestation already used");
+  nullifiers.insert(nulDisclosed);
   
   verificationCount.increment(1);
 }
