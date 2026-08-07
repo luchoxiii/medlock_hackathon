@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Midnight Proof Server — generates ZK proofs for contract transactions
   proof-server:
-    image: us-docker.pkg.dev/midnight-ntwrk/midnight-public/proof-server:2.0.0
+    image: midnightntwrk/proof-server:latest
     platform: linux/amd64
     ports:
       - "6300:6300"
