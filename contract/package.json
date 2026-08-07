@@ -1,0 +1,7 @@
+{
+  "name": "medlock-contract",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MedLock Compact smart contract for ZK medical verification",
+  "license": "Apache-2.0"
+}

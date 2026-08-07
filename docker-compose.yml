@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  # Midnight Proof Server — generates ZK proofs for contract transactions
+  proof-server:
+    image: us-docker.pkg.dev/midnight-ntwrk/midnight-public/proof-server:2.0.0
+    platform: linux/amd64
+    ports:
+      - "6300:6300"
+    environment:
+      - RUST_LOG=info
+    restart: unless-stopped
+
+  # Midnight Local Node (for fully local development)
+  # Uncomment below if running a local devnet
+  # midnight-node:
+  #   image: us-docker.pkg.dev/midnight-ntwrk/midnight-public/midnight-node:latest
+  #   ports:
+  #     - "9944:9944"
+  #     - "30333:30333"
+  #   restart: unless-stopped
+
+  # Midnight Indexer (for fully local development)
+  # Uncomment below if running a local devnet
+  # indexer:
+  #   image: us-docker.pkg.dev/midnight-ntwrk/midnight-public/midnight-indexer:latest
+  #   ports:
+  #     - "8088:8088"
+  #   depends_on:
+  #     - midnight-node
+  #   restart: unless-stopped

@@ -1,0 +1,77 @@
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+pragma language_version >= 0.22;
+
+import CompactStandardLibrary;
+
+export ledger authorizedDoctors: MerkleTree<16, Bytes<32>>;
+export ledger nullifiers: Set<Bytes<32>>;
+export ledger verificationCount: Counter;
+export ledger admin: Bytes<32>;
+
+witness adminSecretKey(): Bytes<32>;
+witness patientBloodType(): Bytes<32>;
+witness patientConsent(): Boolean;
+witness patientSerologyClean(): Boolean;
+witness doctorSecretKey(): Bytes<32>;
+witness attestationNonce(): Bytes<32>;
+witness findDoctorPath(leaf: Bytes<32>): MerkleTreePath<16, Bytes<32>>;
+
+pure circuit derivePublicKey(sk: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([pad(32, "medlock:pk:v1"), sk]);
+}
+
+pure circuit makeNullifier(sk: Bytes<32>, nonce: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<3, Bytes<32>>>([pad(32, "medlock:nullifier:v1"), sk, nonce]);
+}
+
+pure circuit makeAttestation(bloodType: Bytes<32>, consent: Boolean, serologyClean: Boolean, doctorPk: Bytes<32>): Bytes<32> {
+  return persistentHash<[Bytes<32>, Boolean, Boolean, Bytes<32>]>([bloodType, consent, serologyClean, doctorPk]);
+}
+
+constructor() {
+  admin = disclose(derivePublicKey(adminSecretKey()));
+}
+
+export circuit add_authorized_doctor(doctorCommitment: Bytes<32>): [] {
+  assert(admin == derivePublicKey(adminSecretKey()), "not authorized");
+  authorizedDoctors.insert(disclose(doctorCommitment));
+}
+
+export circuit verify_emergency_match(requiredBloodType: Bytes<32>): [] {
+  const bloodType = patientBloodType();
+  const consent = patientConsent();
+  const serologyClean = patientSerologyClean();
+  
+  const doctorSk = doctorSecretKey();
+  const doctorPk = derivePublicKey(doctorSk);
+  
+  const path = findDoctorPath(doctorPk);
+  
+  assert(
+    authorizedDoctors.checkRoot(merkleTreePathRoot<16, Bytes<32>>(path)),
+    "doctor not authorized"
+  );
+  
+  assert(consent == true, "patient has not consented");
+  assert(serologyClean == true, "patient serology is not clean");
+  assert(bloodType == requiredBloodType, "blood type mismatch");
+  
+  const nonce = attestationNonce();
+  const nul = makeNullifier(doctorSk, nonce);
+  
+  assert(!nullifiers.member(nul), "attestation already used");
+  nullifiers.insert(disclose(nul));
+  
+  verificationCount.increment(1);
+}
