@@ -13,8 +13,8 @@ export const Layout: React.FC = () => {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <nav className="navbar">
-        <Link to="/" className="navbar-brand">
-          ◉ MedLock
+        <Link to="/" className="navbar-brand" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <img src="/images/logotipo.png" alt="MedLock" style={{ height: '34px', width: 'auto', objectFit: 'contain' }} />
         </Link>
         <div className="navbar-nav">
           <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>Inicio</Link>
