@@ -115,15 +115,24 @@ export const PatientVault: React.FC = () => {
   // Locked View if wallet is not connected
   if (!isConnected || !address) {
     return (
-      <div className="card card-glass" style={{ gridColumn: '1 / -1', padding: '60px 40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px' }}>
-        <div style={{ fontSize: '4rem', filter: 'drop-shadow(0 0 16px rgba(0,113,227,0.3))' }}>🔒</div>
-        <h2 style={{ fontSize: '1.85rem', fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text-primary)' }}>Bóveda Cifrada de Salud</h2>
-        <p style={{ maxWidth: '580px', color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: '1.6' }}>
-          Tus datos médicos sensibles se almacenan en local mediante encriptación criptográfica <strong>AES-GCM (256-bit)</strong>. Conecta tu wallet de Midnight para derivar las llaves de descifrado y acceder a tu bóveda soberana de salud.
-        </p>
-        <button className="btn btn-primary" onClick={connect} style={{ padding: '14px 28px', fontSize: '1rem', borderRadius: '12px' }}>
-          Conectar Wallet para Descifrar
-        </button>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px', gridColumn: '1 / -1', alignItems: 'stretch' }}>
+        <div className="card card-glass" style={{ flex: '1 1 450px', padding: '48px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', gap: '20px', textAlign: 'left' }}>
+          <div style={{ fontSize: '3.5rem', filter: 'drop-shadow(0 0 16px rgba(0,113,227,0.3))' }}>🔒</div>
+          <h2 style={{ fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text-primary)', margin: 0 }}>Bóveda Cifrada de Salud</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: '1.6', margin: 0 }}>
+            Tus datos médicos sensibles se almacenan de forma local en tu navegador mediante encriptación criptográfica fuerte <strong>AES-GCM (256-bit)</strong>. Conecta tu wallet de Midnight para derivar las llaves de descifrado y acceder a tu expediente de salud privado y soberano.
+          </p>
+          <button className="btn btn-primary" onClick={connect} style={{ padding: '14px 28px', fontSize: '1rem', borderRadius: '12px', marginTop: '12px' }}>
+            Conectar Wallet para Descifrar
+          </button>
+        </div>
+        <div style={{ flex: '1 1 350px', borderRadius: 'var(--radius-xl)', overflow: 'hidden', boxShadow: 'var(--shadow-lg)', border: '1px solid var(--border-color)', minHeight: '350px' }}>
+          <img 
+            src="/images/vault_locked_phone.jpg" 
+            alt="Secure patient device" 
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} 
+          />
+        </div>
       </div>
     );
   }
