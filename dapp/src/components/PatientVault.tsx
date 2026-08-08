@@ -15,14 +15,16 @@ export const PatientVault: React.FC = () => {
   const [bloodType, setBloodType] = useState('O+');
   const [serologyClean, setSerologyClean] = useState(true);
   const [isDecrypting, setIsDecrypting] = useState(false);
-  const [consents, setConsents] = useState<GranularConsentConfig>({
+  const defaultConsents: GranularConsentConfig = {
     organDonation: { enabled: true, expiration: 'permanent', activatedAt: Date.now() },
     emergencyMatching: { enabled: true, expiration: 'permanent', activatedAt: Date.now() },
     clinicalTrial: { enabled: false, expiration: 'permanent', activatedAt: null },
     traumatology: { enabled: false, expiration: 'permanent', activatedAt: null },
     bloodTransfusion: { enabled: false, expiration: 'permanent', activatedAt: null },
     allergyHistory: { enabled: false, expiration: 'permanent', activatedAt: null },
-  });
+  };
+
+  const [consents, setConsents] = useState<GranularConsentConfig>(defaultConsents);
 
   // Decrypt and load data when wallet is connected
   useEffect(() => {
@@ -42,28 +44,34 @@ export const PatientVault: React.FC = () => {
           
           setBloodType(decBlood);
           setSerologyClean(decSerology === 'true');
-          setConsents(JSON.parse(decConsents));
+          
+          // Merge loaded consents with defaultConsents to auto-heal missing fields
+          const parsed = JSON.parse(decConsents);
+          const healed = { ...defaultConsents, ...parsed };
+          setConsents(healed);
           
           // Legacy sync for backend compat
           localStorage.setItem('medlock_patient_blood_type', decBlood);
           localStorage.setItem('medlock_patient_serology_clean', decSerology);
-          localStorage.setItem('medlock_patient_consents', decConsents);
+          localStorage.setItem('medlock_patient_consents', JSON.stringify(healed));
         } else {
           // Initialize encryption with default/existing values
           const initialBlood = localStorage.getItem('medlock_patient_blood_type') || 'O+';
           const initialSerology = localStorage.getItem('medlock_patient_serology_clean') !== 'false';
           const initialConsents = localStorage.getItem('medlock_patient_consents') 
             ? JSON.parse(localStorage.getItem('medlock_patient_consents')!) 
-            : consents;
+            : defaultConsents;
             
+          const healed = { ...defaultConsents, ...initialConsents };
+          
           setBloodType(initialBlood);
           setSerologyClean(initialSerology);
-          setConsents(initialConsents);
+          setConsents(healed);
           
           // Save encrypted
           const encB = await encryptData(initialBlood, address);
           const encS = await encryptData(String(initialSerology), address);
-          const encC = await encryptData(JSON.stringify(initialConsents), address);
+          const encC = await encryptData(JSON.stringify(healed), address);
           
           localStorage.setItem(`medlock_enc_blood_${address}`, encB);
           localStorage.setItem(`medlock_enc_serology_${address}`, encS);

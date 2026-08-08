@@ -28,7 +28,7 @@ export const ConsentToggles: React.FC<Props> = ({ consents, onChange }) => {
   }, []);
 
   const isExpired = (entry: ConsentEntry) => {
-    if (!entry.enabled || !entry.activatedAt || entry.expiration === 'permanent') return false;
+    if (!entry || !entry.enabled || !entry.activatedAt || entry.expiration === 'permanent') return false;
     return entry.activatedAt + EXPIRATION_MS[entry.expiration] <= now;
   };
 
@@ -37,14 +37,14 @@ export const ConsentToggles: React.FC<Props> = ({ consents, onChange }) => {
     Object.keys(consents).forEach((k) => {
       const key = k as keyof GranularConsentConfig;
       const entry = consents[key];
-      if (entry.enabled && isExpired(entry)) {
+      if (entry && entry.enabled && isExpired(entry)) {
         onChange(key, { ...entry, enabled: false, activatedAt: null });
       }
     });
   }, [now, consents, onChange]);
 
   const getRemainingTime = (entry: ConsentEntry) => {
-    if (!entry.enabled || !entry.activatedAt || entry.expiration === 'permanent') return null;
+    if (!entry || !entry.enabled || !entry.activatedAt || entry.expiration === 'permanent') return null;
     const expiresAt = entry.activatedAt + EXPIRATION_MS[entry.expiration];
     const diff = expiresAt - now;
     if (diff <= 0) return 'Expirado';
@@ -58,7 +58,7 @@ export const ConsentToggles: React.FC<Props> = ({ consents, onChange }) => {
   };
 
   const handleToggle = (key: keyof GranularConsentConfig, checked: boolean) => {
-    const current = consents[key];
+    const current = consents[key] || { enabled: false, expiration: 'permanent', activatedAt: null };
     onChange(key, {
       ...current,
       enabled: checked,
@@ -67,7 +67,7 @@ export const ConsentToggles: React.FC<Props> = ({ consents, onChange }) => {
   };
 
   const handleExpirationChange = (key: keyof GranularConsentConfig, expiration: ConsentEntry['expiration']) => {
-    const current = consents[key];
+    const current = consents[key] || { enabled: false, expiration: 'permanent', activatedAt: null };
     onChange(key, {
       ...current,
       expiration,
@@ -81,7 +81,7 @@ export const ConsentToggles: React.FC<Props> = ({ consents, onChange }) => {
     label: string,
     desc: string
   ) => {
-    const entry = consents[key];
+    const entry = consents[key] || { enabled: false, expiration: 'permanent', activatedAt: null };
     const expired = Boolean(entry.enabled && entry.activatedAt && entry.expiration !== 'permanent' && entry.activatedAt + EXPIRATION_MS[entry.expiration] <= now);
     const active = entry.enabled && !expired;
     const remainingTime = getRemainingTime(entry);
