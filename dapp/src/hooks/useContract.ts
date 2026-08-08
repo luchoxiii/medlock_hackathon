@@ -8,9 +8,11 @@ import { useWallet } from './useWallet';
 import {
   deployMedLockContract,
   addAuthorizedDoctor as apiAddDoctor,
+  revokeAuthorizedDoctor as apiRevokeDoctor,
   verifyEmergencyMatch as apiVerifyMatch,
   fetchMedLockLedger,
   deriveDoctorPublicKey,
+  fromHex,
   toHex
 } from '../api/midnight';
 import { VerificationResult, ConsentConfig } from '../api/types';
@@ -26,6 +28,7 @@ export function useContract() {
   const [isDeploying, setIsDeploying] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isAddingDoctor, setIsAddingDoctor] = useState(false);
+  const [isRevokingDoctor, setIsRevokingDoctor] = useState(false);
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [verificationCount, setVerificationCount] = useState<bigint | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +86,23 @@ export function useContract() {
     }
   };
 
+  const revokeDoctor = async (doctorPkHex: string) => {
+    if (!session || !contractAddress) throw new Error("Contract or wallet not ready");
+    setIsRevokingDoctor(true);
+    setError(null);
+    try {
+      const pkBytes = fromHex(doctorPkHex);
+      const txHash = await apiRevokeDoctor(session, contractAddress, ADMIN_SK, pkBytes);
+      await fetchLedgerState();
+      return txHash;
+    } catch (err: any) {
+      setError(err.message || "Failed to revoke doctor");
+      throw err;
+    } finally {
+      setIsRevokingDoctor(false);
+    }
+  };
+
   const verifyEmergencyMatch = async (requiredBloodType: string) => {
     if (!session || !contractAddress) throw new Error("Contract or wallet not ready");
     setIsVerifying(true);
@@ -132,12 +152,14 @@ export function useContract() {
     isDeploying,
     isVerifying,
     isAddingDoctor,
+    isRevokingDoctor,
     verificationResult,
     verificationCount,
     doctorPublicKeyHex: '0x' + toHex(doctorPublicKey),
     error,
     deployContract,
     addDoctor,
+    revokeDoctor,
     verifyEmergencyMatch,
     refreshState: fetchLedgerState
   };

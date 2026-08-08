@@ -20,14 +20,18 @@ export interface RegisteredDoctor {
 interface DoctorDirectoryProps {
   contractAddress: string | null;
   onAddDoctor: () => Promise<string>;
+  onRevokeDoctor: (doctorPkHex: string) => Promise<string>;
   isAddingDoctor: boolean;
+  isRevokingDoctor: boolean;
   doctorPublicKeyHex: string;
 }
 
 export const DoctorDirectory: React.FC<DoctorDirectoryProps> = ({
   contractAddress,
   onAddDoctor,
+  onRevokeDoctor,
   isAddingDoctor,
+  isRevokingDoctor,
   doctorPublicKeyHex
 }) => {
   const [doctors, setDoctors] = useState<RegisteredDoctor[]>([]);
@@ -105,20 +109,24 @@ export const DoctorDirectory: React.FC<DoctorDirectoryProps> = ({
     }
   };
 
-  const handleRevoke = (id: string) => {
-    if (window.confirm('¿Estás seguro de que deseas revocar a este médico?')) {
-      const updated = doctors.map(d => 
-        d.id === id ? { ...d, status: 'revoked' as const, revokedAt: new Date().toISOString() } : d
-      );
-      saveDoctors(updated);
+  const handleRevoke = async (id: string, pkHex: string) => {
+    if (!contractAddress) {
+      alert('Contrato no disponible');
+      return;
     }
-  };
-
-  const handleReactivate = (id: string) => {
-    const updated = doctors.map(d => 
-      d.id === id ? { ...d, status: 'active' as const, revokedAt: undefined } : d
-    );
-    saveDoctors(updated);
+    if (window.confirm('¿Estás seguro de que deseas revocar a este médico en la blockchain? Esta acción es definitiva e inmutable.')) {
+      try {
+        const txHash = await onRevokeDoctor(pkHex);
+        const updated = doctors.map(d => 
+          d.id === id ? { ...d, status: 'revoked' as const, revokedAt: new Date().toISOString(), txHash } : d
+        );
+        saveDoctors(updated);
+        alert('Médico revocado con éxito on-chain. Transacción: ' + txHash.slice(0, 10) + '...');
+      } catch (err: any) {
+        console.error(err);
+        alert('Error al revocar en la blockchain: ' + (err?.message || err));
+      }
+    }
   };
 
   const activeCount = doctors.filter(d => d.status === 'active').length;
@@ -167,8 +175,8 @@ export const DoctorDirectory: React.FC<DoctorDirectoryProps> = ({
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
-          <div style={{ padding: '12px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', marginBottom: '16px', fontSize: '0.85rem' }}>
-            <strong>Nota:</strong> La revocación on-chain requiere un circuito de actualización del MerkleTree. Actualmente se aplica a nivel de capa de aplicación.
+          <div style={{ padding: '12px', backgroundColor: 'rgba(52, 199, 89, 0.1)', border: '1px solid var(--accent-green)', borderRadius: '8px', marginBottom: '16px', fontSize: '0.85rem', color: '#1e7033' }}>
+            <strong>🛡️ Seguridad Activa:</strong> La revocación se aplica de forma inmutable on-chain utilizando el circuito criptográfico <code>revoke_doctor</code>.
           </div>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
             <thead>
@@ -206,13 +214,11 @@ export const DoctorDirectory: React.FC<DoctorDirectoryProps> = ({
                   </td>
                   <td style={{ padding: '12px' }}>
                     {doc.status === 'active' ? (
-                      <button className="btn" style={{ padding: '6px 12px', fontSize: '0.8rem', backgroundColor: 'transparent', border: '1px solid var(--accent-red)', color: 'var(--accent-red)' }} onClick={() => handleRevoke(doc.id)}>
-                        Revocar
+                      <button className="btn" style={{ padding: '6px 12px', fontSize: '0.8rem', backgroundColor: 'transparent', border: '1px solid var(--accent-red)', color: 'var(--accent-red)' }} onClick={() => handleRevoke(doc.id, doc.publicKeyHex)} disabled={isRevokingDoctor}>
+                        {isRevokingDoctor ? 'Revocando...' : 'Revocar'}
                       </button>
                     ) : (
-                      <button className="btn" style={{ padding: '6px 12px', fontSize: '0.8rem', backgroundColor: 'transparent', border: '1px solid var(--accent-blue)', color: 'var(--accent-blue)' }} onClick={() => handleReactivate(doc.id)}>
-                        Reactivar
-                      </button>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Revocado</span>
                     )}
                   </td>
                 </tr>

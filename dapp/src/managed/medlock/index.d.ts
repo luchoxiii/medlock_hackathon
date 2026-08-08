@@ -18,6 +18,8 @@ export type Witnesses<PS> = {
 export type ImpureCircuits<PS> = {
   add_authorized_doctor(context: __compactRuntime.CircuitContext<PS>,
                         doctorCommitment_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
+  revoke_doctor(context: __compactRuntime.CircuitContext<PS>,
+                doctorCommitment_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
   verify_emergency_match(context: __compactRuntime.CircuitContext<PS>,
                          requiredBloodType_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
 }
@@ -25,6 +27,8 @@ export type ImpureCircuits<PS> = {
 export type ProvableCircuits<PS> = {
   add_authorized_doctor(context: __compactRuntime.CircuitContext<PS>,
                         doctorCommitment_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
+  revoke_doctor(context: __compactRuntime.CircuitContext<PS>,
+                doctorCommitment_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
   verify_emergency_match(context: __compactRuntime.CircuitContext<PS>,
                          requiredBloodType_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
 }
@@ -35,6 +39,8 @@ export type PureCircuits = {
 export type Circuits<PS> = {
   add_authorized_doctor(context: __compactRuntime.CircuitContext<PS>,
                         doctorCommitment_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
+  revoke_doctor(context: __compactRuntime.CircuitContext<PS>,
+                doctorCommitment_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
   verify_emergency_match(context: __compactRuntime.CircuitContext<PS>,
                          requiredBloodType_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
 }
@@ -47,6 +53,12 @@ export type Ledger = {
     firstFree(): bigint;
     pathForLeaf(index_0: bigint, leaf_0: Uint8Array): __compactRuntime.MerkleTreePath<Uint8Array>;
     findPathForLeaf(leaf_0: Uint8Array): __compactRuntime.MerkleTreePath<Uint8Array> | undefined
+  };
+  revokedDoctors: {
+    isEmpty(): boolean;
+    size(): bigint;
+    member(elem_0: Uint8Array): boolean;
+    [Symbol.iterator](): Iterator<Uint8Array>
   };
   nullifiers: {
     isEmpty(): boolean;

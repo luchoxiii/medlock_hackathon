@@ -462,6 +462,35 @@ export async function verifyEmergencyMatch(
 }
 
 /**
+ * Revokes an authorized doctor on-chain.
+ */
+export async function revokeAuthorizedDoctor(
+  session: ConnectedSession,
+  contractAddress: string,
+  adminSecretKey: Uint8Array,
+  doctorPublicKeyBytes: Uint8Array
+): Promise<string> {
+  const currentState = (await session.providers.privateStateProvider.get(PRIVATE_STATE_ID)) as MedLockPrivateState || {};
+  const updatedPrivateState = {
+    ...currentState,
+    adminSecretKey
+  };
+
+  await session.providers.privateStateProvider.setContractAddress(contractAddress);
+  await session.providers.privateStateProvider.set(PRIVATE_STATE_ID, updatedPrivateState);
+
+  const txData = await (submitCallTxAsync as any)(session.providers, {
+    compiledContract: getCompiledContract(),
+    contractAddress,
+    circuitId: 'revoke_doctor',
+    args: [doctorPublicKeyBytes],
+    privateStateId: PRIVATE_STATE_ID,
+  });
+
+  return txData.public.txHash || '';
+}
+
+/**
  * Polls the indexer for contract ledger data.
  */
 export async function fetchMedLockLedger(

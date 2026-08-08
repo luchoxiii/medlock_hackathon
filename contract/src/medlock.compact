@@ -15,6 +15,7 @@ pragma language_version >= 0.22;
 import CompactStandardLibrary;
 
 export ledger authorizedDoctors: MerkleTree<16, Bytes<32>>;
+export ledger revokedDoctors: Set<Bytes<32>>;
 export ledger nullifiers: Set<Bytes<32>>;
 export ledger verificationCount: Counter;
 export ledger admin: Bytes<32>;
@@ -48,6 +49,11 @@ export circuit add_authorized_doctor(doctorCommitment: Bytes<32>): [] {
   authorizedDoctors.insert(disclose(doctorCommitment));
 }
 
+export circuit revoke_doctor(doctorCommitment: Bytes<32>): [] {
+  assert(admin == derivePublicKey(adminSecretKey()), "not authorized");
+  revokedDoctors.insert(disclose(doctorCommitment));
+}
+
 export circuit verify_emergency_match(requiredBloodType: Bytes<32>): [] {
   const bloodType = patientBloodType();
   const consent = patientConsent();
@@ -62,6 +68,8 @@ export circuit verify_emergency_match(requiredBloodType: Bytes<32>): [] {
     authorizedDoctors.checkRoot(disclose(merkleTreePathRoot<16, Bytes<32>>(path))),
     "doctor not authorized"
   );
+
+  assert(!revokedDoctors.member(disclose(doctorPk)), "doctor has been revoked");
   
   assert(consent == true, "patient has not consented");
   assert(serologyClean == true, "patient serology is not clean");

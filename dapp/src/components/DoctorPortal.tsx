@@ -20,10 +20,12 @@ export const DoctorPortal: React.FC = () => {
     contractAddress,
     isDeploying,
     isAddingDoctor,
+    isRevokingDoctor,
     doctorPublicKeyHex,
     error,
     deployContract,
-    addDoctor
+    addDoctor,
+    revokeDoctor
   } = useContract();
 
   const [patientId, setPatientId] = useState('');
@@ -209,7 +211,9 @@ export const DoctorPortal: React.FC = () => {
       <DoctorDirectory 
         contractAddress={contractAddress}
         onAddDoctor={addDoctor}
+        onRevokeDoctor={revokeDoctor}
         isAddingDoctor={isAddingDoctor}
+        isRevokingDoctor={isRevokingDoctor}
         doctorPublicKeyHex={doctorPublicKeyHex}
       />
     </div>
