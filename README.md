@@ -41,23 +41,50 @@
 │                                                         │
 │  [PUBLIC STATE]                [PROTECTED STATE]         │
 │  - Authorized Doctors Root    - Nullifiers              │
-│  - Verification Keys          - Credential Commitments  │
-│  - ZK Query Results           - Validated Proof Log     │
+│  - Revoked Doctors Set (Real) - Credential Commitments  │
+│  - Verification Keys          - Validated Proof Log     │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ### What's Private vs. Public
 
-| Data | Location | Visibility |
-|------|----------|------------|
+| Data | Location | Visibility / Security |
+|------|----------|-----------------------|
 | Patient Name / DNI | Wallet only | Never leaves device |
-| Blood Type & HLA | Witness (off-chain) | ZK proven, never revealed |
-| Serology Status | Witness (off-chain) | ZK proven, never revealed |
-| Donation Consent | Witness (off-chain) | ZK proven, never revealed |
+| Blood Type & HLA | Encrypted Local Vault | **AES-GCM (256-bit)**, decrypted only with active Wallet |
+| Serology Status | Encrypted Local Vault | **AES-GCM (256-bit)**, decrypted only with active Wallet |
+| Donation Consent | Encrypted Local Vault | **AES-GCM (256-bit)**, decrypted only with active Wallet |
 | Doctor Attestation | Wallet + Signature | Verified via Merkle proof |
 | Authorized Doctors Root | On-chain (public) | Merkle root of accredited providers |
+| Revoked Doctors List | On-chain (public) | Set of revoked doctor commitments preventing match verification |
 | Verification Result | On-chain (public) | Boolean match (true/false) only |
 | Nullifier | On-chain (public) | Anonymous hash preventing reuse |
+
+## Core Cryptographic & Visual Features
+
+### 🔒 Sovereign Local Vault (AES-GCM 256-bit)
+To avoid plaintext exposure in the browser, the patient's local credentials, blood profile, and granular consents are encrypted on-the-fly using industrial-grade **AES-GCM (256-bit)**. 
+- The decryption key is derived cryptographically from the connected Midnight Wallet address/signature.
+- **Disconnected Lock**: Hides and locks the vault when the wallet is disconnected.
+- **Local Network Fallback**: Automatically falls back to a pure JS SHA-256 and stream cipher when accessed over non-secure contexts (e.g., local IPs `192.168.x.x` without HTTPS) to ensure smooth multi-device testing.
+
+### 🚫 On-Chain Doctor Revocation
+Implements a real administrative revocation circuit on the blockchain. 
+- Admins can submit a doctor's public key commitment to the on-chain `revokedDoctors` `Set`.
+- The ZK circuit `verify_emergency_match` asserts that the validating doctor's credentials are not present in this revoked set.
+- A revoked doctor's ZK proof generation will instantly fail mathematically on-device, blocking access to data.
+
+### 📊 Interactive ZK Proof Visualizer
+A real-time progress monitor inside the Emergency Scanner that visualizes the four critical phases of ZK proof generation:
+1. **Witness Generation** (reading off-chain consents/attestations)
+2. **State Sanitization** (masking private patient data)
+3. **Midnight Proof Server Communication** (generating the ZKP)
+4. **On-Chain Nullifier Publishing** (preventing transaction replay)
+
+### 📁 ZK Audit Ledger
+A persistent timeline log that tracks emergency access attempts, publishing block numbers, truncated verification hashes, and proof nullifiers to demonstrate compliance and auditing capabilities.
+
+---
 
 ## Project Structure
 
@@ -68,14 +95,14 @@ medlock/
 │       └── medlock.compact         # ZK verification circuit
 ├── dapp/                           # React Frontend + Midnight.js
 │   ├── src/
-│   │   ├── api/                    # Midnight SDK integration
-│   │   ├── components/             # React UI components
-│   │   ├── contexts/               # Wallet state management
-│   │   ├── hooks/                  # React hooks
-│   │   └── pages/                  # Route pages
+│   │   ├── api/                    # Cifrado (AES-GCM) & Midnight SDK
+│   │   ├── components/             # React UI components (Visualizer, Directory, Vault)
+│   │   ├── contexts/               # Wallet connection hooks
+│   │   ├── hooks/                  # Contract interaction hooks
+│   │   └── pages/                  # Route views (Emergency, Doctor, Home)
 │   └── public/
-│       └── zk/medlock/             # ZK proving assets
-├── docker-compose.yml              # Local dev stack
+│       └── zk/medlock/             # ZK proving assets (ZKIR, keys)
+├── docker-compose.yml              # Local devnet + proof server
 ├── LICENSE                         # Apache 2.0
 └── README.md                       # This file
 ```
@@ -83,17 +110,17 @@ medlock/
 ## Tech Stack
 
 - **Smart Contracts**: [Compact](https://docs.midnight.network/compact) (Midnight's ZK circuit language)
-- **Blockchain**: [Midnight Network](https://midnight.network) (preprod)
+- **Blockchain**: [Midnight Network](https://midnight.network) (preprod / local devnet)
 - **Frontend**: React 19 + TypeScript + Vite
 - **Wallet**: 1AM / Lace via DApp Connector API
 - **SDK**: `@midnight-ntwrk/midnight-js-*` packages
-- **Styling**: Vanilla CSS (Apple-inspired design system)
+- **Styling**: Vanilla CSS (Apple-inspired glassmorphism & premium UI design system)
 
 ## Prerequisites
 
 - Node.js 18+
 - Docker & Docker Compose (for local proof server)
-- Compact compiler (`compactc`) — [installation guide](https://docs.midnight.network)
+- Compact compiler (`compact` version `0.5.x`) — [installation guide](https://docs.midnight.network)
 - 1AM or Lace wallet browser extension
 
 ## Quick Start
@@ -105,16 +132,27 @@ git clone https://github.com/luchoxiii/medlock_hackathon.git
 cd medlock_hackathon
 ```
 
-### 2. Compile the Contract
+### 2. Compile the Smart Contract
+Compile the Compact contract and generate the cryptographic artifacts:
 
 ```bash
 cd contract
-compactc src/medlock.compact --out-dir build
+# Compile using Compact 0.5.1
+compact compile src/medlock.compact build
 ```
 
-### 3. Start Local Proof Server
+Then, copy the generated TS/JS files and ZKIR binaries into the DApp directory structure:
+```bash
+# Copy contract bindings
+cp -R build/managed/medlock ../dapp/src/managed/
+# Copy ZK proving assets
+cp -R build/zkdir/medlock/* ../dapp/public/zk/medlock/
+```
+
+### 3. Start the Proof Server & Devnet
 
 ```bash
+cd ..
 docker-compose up -d
 ```
 
@@ -126,15 +164,18 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173` — connect your wallet and explore the Patient Vault, Doctor Portal, and Emergency Scanner.
+Open `http://localhost:5173` (or the local network IP) to connect your wallet, decrypt your vault, register/revoke doctors, and run emergency scanners.
 
 ## ZK Verification Flow
 
-1. **Patient** loads medical data into their local wallet (never transmitted)
-2. **Doctor** issues signed attestation → patient stores it locally
-3. **Hospital ER** initiates emergency match query with required criteria
-4. **Compact circuit** runs locally: verifies doctor signature against Merkle tree, checks blood type compatibility, validates consent — all in zero knowledge
-5. **On-chain result**: only a boolean `MATCH` / `NO MATCH` and a nullifier are published. Zero raw data exposed.
+1. **Patient** inputs medical data. It is encrypted locally using AES-GCM and stored.
+2. **Doctor** issues a signed attestation (validating qualifications and hospital credentials) which the patient stores encrypted.
+3. **ER Scanner** requests a match on criteria (e.g. O- blood compatibility).
+4. **Compact ZK Circuit** runs in the user's browser:
+   - Validates the doctor's signature.
+   - Assures the doctor's key is not on the on-chain Revocation list.
+   - Computes blood compatibility without revealing the patient's identity.
+5. **Ledger Publish**: A cryptographically verifiable transaction log and nullifier are stored on the Midnight ledger.
 
 ## License
 
@@ -142,4 +183,5 @@ Licensed under the [Apache License 2.0](LICENSE).
 
 ## Team
 
-Built for the Midnight Network Hackathon.
+Built with ❤️ for the Midnight Network Hackathon.
+
