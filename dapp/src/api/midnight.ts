@@ -17,6 +17,7 @@ import {
 import { sampleSigningKey } from '@midnight-ntwrk/compact-runtime';
 import { CompiledContract } from '@midnight-ntwrk/compact-js';
 import { Contract as MedLockContract, ledger as medlockLedger } from '../managed/medlock';
+import { CostModel, Transaction } from '@midnight-ntwrk/ledger-v8';
 
 export const NETWORK_ID = 'undeployed';
 export const PRIVATE_STATE_ID = 'medlock_private_state';
@@ -222,7 +223,6 @@ export async function createConnectedSession(api: any): Promise<ConnectedSession
 
   const proofProvider = {
     async proveTx(unprovenTx: any) {
-      const { CostModel } = await import('@midnight-ntwrk/ledger-v8');
       return unprovenTx.prove(provingProvider, CostModel.initialCostModel());
     },
   };
@@ -234,7 +234,6 @@ export async function createConnectedSession(api: any): Promise<ConnectedSession
       const txHex = toHex(tx.serialize());
       const balanced = await api.balanceUnsealedTransaction(txHex);
       if (!balanced?.tx) throw new Error('balanceUnsealedTransaction returned invalid result');
-      const { Transaction } = await import('@midnight-ntwrk/ledger-v8');
       return Transaction.deserialize('signature', 'proof', 'binding', fromHex(balanced.tx));
     },
   };
