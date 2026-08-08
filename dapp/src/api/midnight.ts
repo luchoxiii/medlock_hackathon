@@ -82,25 +82,41 @@ function coinPublicKeyToBytes(pk: unknown): Uint8Array {
 }
 
 /**
+ * Synchronously detect a Midnight wallet extension injected on window.midnight.
+ * Must be checked synchronously within user click events to preserve User Activation Context.
+ */
+export function getAvailableWalletSync(): any | null {
+  const injected = (window as any).midnight;
+  if (!injected) return null;
+
+  if (injected['1am']) return injected['1am'];
+  if (injected['lace']) return injected['lace'];
+  if (injected['mn-wallet']) return injected['mn-wallet'];
+
+  const wallets = Object.values(injected);
+  return wallets.length > 0 ? wallets[0] : null;
+}
+
+/**
  * Detect a Midnight wallet extension injected on window.midnight.
  */
 export async function detectWallet(): Promise<any | null> {
+  const syncWallet = getAvailableWalletSync();
+  if (syncWallet) return syncWallet;
+
   let attempts = 0;
   return new Promise((resolve) => {
     const check = () => {
-      const injected = (window as any).midnight;
-      if (injected) {
-        const wallets = Object.values(injected);
-        if (wallets.length > 0) {
-          resolve(wallets[0]);
-          return;
-        }
+      const wallet = getAvailableWalletSync();
+      if (wallet) {
+        resolve(wallet);
+        return;
       }
-      if (++attempts >= 50) {
+      if (++attempts >= 30) {
         resolve(null);
         return;
       }
-      setTimeout(check, 100);
+      setTimeout(check, 50);
     };
     check();
   });

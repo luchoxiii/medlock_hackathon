@@ -4,7 +4,7 @@
  */
 
 import React, { createContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { detectWallet, connectWallet, ConnectedSession } from '../api/midnight';
+import { detectWallet, getAvailableWalletSync, connectWallet, ConnectedSession } from '../api/midnight';
 import { WalletState } from '../api/types';
 
 interface WalletContextType extends WalletState {
@@ -28,10 +28,32 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [isConnecting, setIsConnecting] = useState(false);
   const [walletStatus, setWalletStatus] = useState<'checking' | 'detected' | 'not-found'>('checking');
 
-  // Auto-detect wallet on mount
+  // Auto-detect & auto-reconnect on mount if user was previously connected
   useEffect(() => {
+    const shouldAutoConnect = localStorage.getItem('medlock_wallet_connected') === 'true';
+
     detectWallet().then((wallet) => {
-      setWalletStatus(wallet ? 'detected' : 'not-found');
+      if (wallet) {
+        setWalletStatus('detected');
+        if (shouldAutoConnect) {
+          connectWallet(wallet)
+            .then(({ address, walletName, networkId, session: connectedSession }) => {
+              setState({
+                address,
+                isConnected: true,
+                walletType: walletName,
+                network: networkId,
+              });
+              setSession(connectedSession);
+            })
+            .catch((err) => {
+              console.warn('[MedLock] Quiet auto-connect skipped:', err?.message || err);
+              localStorage.removeItem('medlock_wallet_connected');
+            });
+        }
+      } else {
+        setWalletStatus('not-found');
+      }
     });
   }, []);
 
@@ -39,12 +61,20 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     if (isConnecting) return;
     setIsConnecting(true);
     try {
-      const wallet = await detectWallet();
+      // 1. Detect wallet SYNCHRONOUSLY to preserve the user click gesture context.
+      // This is critical for Chrome/Brave extensions to pop up their permission window immediately.
+      let wallet = getAvailableWalletSync();
       if (!wallet) {
-        setWalletStatus('not-found');
-        throw new Error('No Midnight wallet found. Please install a wallet extension.');
+        wallet = await detectWallet();
       }
 
+      if (!wallet) {
+        setWalletStatus('not-found');
+        alert('No se detectó ninguna wallet de Midnight (1AM o Lace). Por favor asegúrate de instalar y activar la extensión en tu navegador.');
+        return;
+      }
+
+      // 2. Immediately call connectWallet which triggers the extension prompt modal directly
       const { address, walletName, networkId, session: connectedSession } = await connectWallet(wallet);
 
       setState({
@@ -55,8 +85,9 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       });
       setSession(connectedSession);
       setWalletStatus('detected');
-      console.log('[MedLock] Connected:', address);
-    } catch (err) {
+      localStorage.setItem('medlock_wallet_connected', 'true');
+      console.log('[MedLock] Connected successfully:', address);
+    } catch (err: any) {
       console.error('[MedLock] Connection error:', err);
     } finally {
       setIsConnecting(false);
@@ -71,6 +102,7 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       network: null,
     });
     setSession(null);
+    localStorage.removeItem('medlock_wallet_connected');
     console.log('[MedLock] Disconnected');
   }, []);
 
