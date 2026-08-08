@@ -261,7 +261,7 @@ export async function createConnectedSession(api: any): Promise<ConnectedSession
       walletProvider,
       midnightProvider,
     },
-    unshieldedAddress: unshieldedAddress.unshieldedAddress,
+    unshieldedAddress,
     coinPublicKeyBytes: coinPublicKeyToBytes(shieldedAddress.shieldedCoinPublicKey),
   };
 }
