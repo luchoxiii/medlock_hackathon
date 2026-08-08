@@ -1,7 +1,7 @@
-/*
- * Copyright 2026 MedLock
- * Licensed under the Apache License, Version 2.0
- */
+import { Buffer } from 'buffer';
+if (typeof window !== 'undefined') {
+  (window as any).Buffer = Buffer;
+}
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
