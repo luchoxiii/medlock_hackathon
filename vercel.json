@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd dapp && npm run build",
+  "buildCommand": "npm run build",
   "outputDirectory": "dapp/dist",
   "rewrites": [
     {

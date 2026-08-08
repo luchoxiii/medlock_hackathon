@@ -1,0 +1,7 @@
+{
+  "name": "medlock-monorepo",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix dapp install && npm --prefix dapp run build"
+  }
+}
