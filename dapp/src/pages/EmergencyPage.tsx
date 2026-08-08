@@ -5,8 +5,9 @@
 
 import React, { useState } from 'react';
 import { useContract } from '../hooks/useContract';
-import { ZKResultMatch } from '../components/ZKResultMatch';
+import { ZKProofVisualizer } from '../components/ZKProofVisualizer';
 import { useWallet } from '../hooks/useWallet';
+import { AuditTimeline } from '../components/AuditTimeline';
 
 export const EmergencyPage: React.FC = () => {
   const [bloodType, setBloodType] = useState('O+');
@@ -103,9 +104,15 @@ export const EmergencyPage: React.FC = () => {
             </p>
           )}
 
-          <ZKResultMatch result={verificationResult} isVerifying={isVerifying} />
+          <ZKProofVisualizer result={verificationResult} isVerifying={isVerifying} />
         </div>
       </div>
+
+      <AuditTimeline 
+        currentResult={verificationResult}
+        contractAddress={contractAddress}
+        verificationCount={verificationCount}
+      />
     </div>
   );
 };
