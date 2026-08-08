@@ -89,10 +89,14 @@ export function getAvailableWalletSync(): any | null {
   const injected = (window as any).midnight;
   if (!injected) return null;
 
+  // 1AM wallet (primary)
   if (injected['1am']) return injected['1am'];
+  // Lace wallet injects as 'mnLace' or 'lace'
+  if (injected['mnLace']) return injected['mnLace'];
   if (injected['lace']) return injected['lace'];
   if (injected['mn-wallet']) return injected['mn-wallet'];
 
+  // Fallback: try any injected wallet
   const wallets = Object.values(injected);
   return wallets.length > 0 ? wallets[0] : null;
 }
@@ -123,7 +127,37 @@ export async function detectWallet(): Promise<any | null> {
 }
 
 /**
+ * Helper: race a promise against a timeout.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout: ${label} no respondió en ${Math.round(ms / 1000)}s. Abre la extensión manualmente.`)), ms)
+    ),
+  ]);
+}
+
+/**
+ * Try a single connect method (connect or enable) with a given network parameter.
+ * Returns the API object or null if it failed.
+ */
+async function tryConnect(wallet: any, method: string, network?: string): Promise<any | null> {
+  if (typeof wallet[method] !== 'function') return null;
+  try {
+    const api = network !== undefined
+      ? await withTimeout(wallet[method](network), 30000, `wallet.${method}('${network}')`)
+      : await withTimeout(wallet[method](), 30000, `wallet.${method}()`);
+    if (api) return api;
+  } catch (e: any) {
+    console.log(`[MedLock] wallet.${method}(${network ?? ''}) →`, e?.message || e);
+  }
+  return null;
+}
+
+/**
  * Connect to a Midnight wallet and build the connected session.
+ * Tries multiple strategies: connect() → enable() → connect(network) → enable(network)
  */
 export async function connectWallet(
   wallet: any,
@@ -132,41 +166,26 @@ export async function connectWallet(
   let connectedApi: any;
   let activeNetwork = preferredNetwork;
 
-  // 1. Try parameterless connect first (preferred by Lace and modern DApp connector API)
-  try {
-    connectedApi = await wallet.connect();
-  } catch (e: any) {
-    console.log('[MedLock] Parameterless connect notice:', e?.message || e);
-  }
+  // Strategy 1: Parameterless connect / enable (Lace prefers this)
+  connectedApi = await tryConnect(wallet, 'connect');
+  if (!connectedApi) connectedApi = await tryConnect(wallet, 'enable');
 
-  // 2. If parameterless didn't return an API, try network IDs with preprod first
+  // Strategy 2: With network ID parameter
   if (!connectedApi) {
     const networksToTry = [preferredNetwork, 'preprod', 'preview', 'undeployed', 'mainnet'].filter(
       (v, i, a) => a.indexOf(v) === i
     );
 
-    let lastErr: any;
     for (const net of networksToTry) {
-      try {
-        connectedApi = await wallet.connect(net);
-        activeNetwork = net;
-        break;
-      } catch (err: any) {
-        lastErr = err;
-        console.warn(`[MedLock] Trying network ${net} failed:`, err?.message || err);
-        if (err?.reason === 'Network ID mismatch' || err?.message?.includes('Network ID mismatch')) {
-          continue;
-        }
-      }
-    }
-
-    if (!connectedApi && lastErr) {
-      throw lastErr;
+      connectedApi = await tryConnect(wallet, 'connect', net);
+      if (connectedApi) { activeNetwork = net; break; }
+      connectedApi = await tryConnect(wallet, 'enable', net);
+      if (connectedApi) { activeNetwork = net; break; }
     }
   }
 
   if (!connectedApi) {
-    throw new Error('No se pudo establecer conexión con la wallet de Midnight.');
+    throw new Error('No se pudo conectar. Asegúrate de que tu extensión Lace/1AM esté desbloqueada y en la red correcta.');
   }
 
   const session = await createConnectedSession(connectedApi);

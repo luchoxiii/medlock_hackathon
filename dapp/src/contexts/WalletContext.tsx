@@ -62,7 +62,6 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setIsConnecting(true);
     try {
       // 1. Detect wallet SYNCHRONOUSLY to preserve the user click gesture context.
-      // This is critical for Chrome/Brave extensions to pop up their permission window immediately.
       let wallet = getAvailableWalletSync();
       if (!wallet) {
         wallet = await detectWallet();
@@ -89,6 +88,10 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       console.log('[MedLock] Connected successfully:', address);
     } catch (err: any) {
       console.error('[MedLock] Connection error:', err);
+      const msg = err?.message || 'Error desconocido al conectar la wallet';
+      // Show user-friendly feedback
+      alert(`Error al conectar la wallet:\n\n${msg}\n\nAsegúrate de que la extensión Lace/1AM esté abierta, desbloqueada y en la red correcta.`);
+      localStorage.removeItem('medlock_wallet_connected');
     } finally {
       setIsConnecting(false);
     }
