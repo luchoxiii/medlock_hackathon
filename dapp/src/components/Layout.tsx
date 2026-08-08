@@ -6,7 +6,6 @@
 import React from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { WalletConnector } from './WalletConnector';
-import { DemoTourBanner } from './DemoTourBanner';
 
 export const Layout: React.FC = () => {
   const location = useLocation();
@@ -25,8 +24,6 @@ export const Layout: React.FC = () => {
         </div>
         <WalletConnector />
       </nav>
-
-      <DemoTourBanner />
 
       <main style={{ flex: 1 }}>
         <Outlet />
