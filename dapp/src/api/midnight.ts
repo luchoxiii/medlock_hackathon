@@ -127,37 +127,53 @@ export async function detectWallet(): Promise<any | null> {
  */
 export async function connectWallet(
   wallet: any,
-  networkId: string = NETWORK_ID
+  preferredNetwork: string = 'preprod'
 ): Promise<{ address: string; walletName: string; networkId: string; session: ConnectedSession }> {
   let connectedApi: any;
-  const networksToTry = [networkId, 'preprod', 'preview', 'undeployed', 'mainnet'].filter(
-    (v, i, a) => a.indexOf(v) === i
-  );
+  let activeNetwork = preferredNetwork;
 
-  let lastErr: any;
-  for (const net of networksToTry) {
-    try {
-      connectedApi = await wallet.connect(net);
-      networkId = net;
-      break;
-    } catch (err: any) {
-      lastErr = err;
-      if (err?.reason === 'Network ID mismatch' || err?.message?.includes('Network ID mismatch')) {
-        continue;
+  // 1. Try parameterless connect first (preferred by Lace and modern DApp connector API)
+  try {
+    connectedApi = await wallet.connect();
+  } catch (e: any) {
+    console.log('[MedLock] Parameterless connect notice:', e?.message || e);
+  }
+
+  // 2. If parameterless didn't return an API, try network IDs with preprod first
+  if (!connectedApi) {
+    const networksToTry = [preferredNetwork, 'preprod', 'preview', 'undeployed', 'mainnet'].filter(
+      (v, i, a) => a.indexOf(v) === i
+    );
+
+    let lastErr: any;
+    for (const net of networksToTry) {
+      try {
+        connectedApi = await wallet.connect(net);
+        activeNetwork = net;
+        break;
+      } catch (err: any) {
+        lastErr = err;
+        console.warn(`[MedLock] Trying network ${net} failed:`, err?.message || err);
+        if (err?.reason === 'Network ID mismatch' || err?.message?.includes('Network ID mismatch')) {
+          continue;
+        }
       }
-      throw err;
+    }
+
+    if (!connectedApi && lastErr) {
+      throw lastErr;
     }
   }
 
   if (!connectedApi) {
-    throw lastErr || new Error('Failed to connect to wallet: Network ID mismatch');
+    throw new Error('No se pudo establecer conexión con la wallet de Midnight.');
   }
 
   const session = await createConnectedSession(connectedApi);
   return {
     address: session.unshieldedAddress,
     walletName: wallet.name || 'Midnight Wallet',
-    networkId,
+    networkId: activeNetwork,
     session
   };
 }
@@ -166,11 +182,15 @@ export async function connectWallet(
  * Initialize all providers for a connected session.
  */
 export async function createConnectedSession(api: any): Promise<ConnectedSession> {
-  const [config, unshieldedAddress, shieldedAddress] = await Promise.all([
+  const [config, rawUnshielded, shieldedAddress] = await Promise.all([
     api.getConfiguration(),
     api.getUnshieldedAddress(),
     api.getShieldedAddresses(),
   ]);
+
+  const unshieldedAddress = typeof rawUnshielded === 'string'
+    ? rawUnshielded
+    : (rawUnshielded?.unshieldedAddress || String(rawUnshielded));
 
   setNetworkId(config.networkId);
 
