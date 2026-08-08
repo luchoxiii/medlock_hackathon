@@ -3,7 +3,20 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Midnight Network](https://img.shields.io/badge/Built_on-Midnight_Network-purple.svg)](https://midnight.network)
 
+> 💡 **¿Buscando el Pitch de presentación?** Hemos preparado un documento exclusivo con la visión, los puntos fuertes y un **speech ganador de 2 minutos** para el hackathon. Léelo aquí: **[PITCH.md](file:///c:/Users/Denis/Desktop/medlock_hackathon/PITCH.md)**.
+
 **MedLock** is a privacy-preserving medical data verification protocol built on [Midnight Network](https://midnight.network). It enables zero-knowledge verification of patient medical credentials (blood type, serology, organ donation consent) without revealing any raw personal or clinical data.
+
+---
+
+### 🚀 Fortalezas Clave (Highlights)
+
+* **Privacidad Absoluta (ZK-Native):** Cero datos de salud en la blockchain. La información médica (como tu grupo sanguíneo o serología) nunca sale de tu dispositivo. La blockchain solo registra el resultado booleano (`SÍ` o `NO`).
+* **Verificación de Autoridad Ciega:** Valida que una credencial fue firmada por un médico certificado mediante pruebas de Merkle Trees, sin revelar la identidad del médico que emitió la firma.
+* **Pruebas en el Cliente (Client-Side Proving):** La prueba de conocimiento cero se computa localmente en el navegador, protegiendo tus datos de ataques de red.
+* **Control Soberano:** El paciente decide qué activar, cuándo y quién puede verificar su información de compatibilidad.
+
+---
 
 ## Architecture
 
