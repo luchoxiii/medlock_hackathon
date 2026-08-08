@@ -8,6 +8,7 @@ import { useContract } from '../hooks/useContract';
 import { ZKProofVisualizer } from '../components/ZKProofVisualizer';
 import { useWallet } from '../hooks/useWallet';
 import { AuditTimeline } from '../components/AuditTimeline';
+import { DonorMatchmaker } from '../components/DonorMatchmaker';
 
 export const EmergencyPage: React.FC = () => {
   const [bloodType, setBloodType] = useState('O+');
@@ -113,6 +114,8 @@ export const EmergencyPage: React.FC = () => {
         contractAddress={contractAddress}
         verificationCount={verificationCount}
       />
+
+      <DonorMatchmaker />
     </div>
   );
 };

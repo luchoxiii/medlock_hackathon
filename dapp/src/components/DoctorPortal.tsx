@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { useContract } from '../hooks/useContract';
+import { DoctorDirectory } from './DoctorDirectory';
 
 interface IssuedAttestation {
   patientId: string;
@@ -204,6 +205,13 @@ export const DoctorPortal: React.FC = () => {
           </div>
         )}
       </div>
+
+      <DoctorDirectory 
+        contractAddress={contractAddress}
+        onAddDoctor={addDoctor}
+        isAddingDoctor={isAddingDoctor}
+        doctorPublicKeyHex={doctorPublicKeyHex}
+      />
     </div>
   );
 };
