@@ -187,3 +187,98 @@ npm install
 npm run build
 ```
 - Vite compila los recursos estáticos. Los motores WASM del Ledger (`@midnight-ntwrk/ledger-v8`) se importan de forma estática en la cabecera para evitar inconsistencias de prototipo de WebAssembly entre dependencias.
+
+---
+
+## 8. Guía de Interfaz (UI) y Flujo de Prueba para Evaluadores
+
+Esta sección describe cómo navegar por la aplicación y ejecutar una demostración completa paso a paso, explicando qué hace cada botón y qué ocurre detrás de escena en la interfaz.
+
+### 8.1 Barra de Navegación Global (Header)
+- **Logotipo de MedLock y Badges**: Muestra el nombre del protocolo y un indicador de red dinámico (`Devnet / Local / Testnet`).
+- **Botón "Conectar Wallet"**:
+  - **Acción**: Abre la extensión del navegador (Lace o 1AM Wallet) para autenticar al usuario.
+  - **Efecto Visual**: Al conectar, el botón se transforma en un chip de dirección truncada (ej. `Anon-3a1b...c9f2`) y habilita instantáneamente las pantallas privadas.
+
+---
+
+### 8.2 Página de Inicio (`Home.tsx`)
+Diseñada con una estética de alta gama para captar la atención del usuario inicial:
+- **Hero Section**: Introducción clara sobre el protocolo soberano de salud.
+- **Tarjetas del Flujo ZK**: Tres secciones ilustradas en filas independientes con imágenes premium:
+  1. **Bóveda del Paciente**: Explica el almacenamiento criptográfico en el cliente.
+  2. **Portal del Médico**: Detalla la acreditación criptográfica de personal médico.
+  3. **Escáner de Emergencia**: Explica cómo se desencadena la prueba de conocimiento cero.
+- **Guía de Flujo Paso a Paso**: Un timeline visual que enseña al usuario cómo interactúan el paciente, el médico y el hospital.
+
+---
+
+### 8.3 Bóveda del Paciente (`PatientPage.tsx` / `PatientVault.tsx`)
+El centro de control de privacidad del paciente.
+
+#### A. Estado Desconectado (Vista de Bloqueo)
+- **Qué ve el usuario**: Una tarjeta de cristal esmerilado con un candado animado.
+- **Funcionalidad**: Indica al usuario que sus datos médicos locales están encriptados mediante **AES-GCM**.
+- **Botón "Conectar Wallet para Descifrar"**: Lanza la autenticación. Impide que un usuario no autorizado visualice datos clínicos locales residuales.
+
+#### B. Estado Conectado (Vista de Bóveda Activa)
+- **Tarjeta de Identidad**: Muestra el identificador público derivado (`Anon-XXXX`).
+- **Selector de Perfil Sanguíneo**:
+  - **Acción**: Permite cambiar tu grupo sanguíneo (ej. `O+`, `AB-`).
+  - **Detrás de escena**: Cada cambio genera una nueva clave en local y sobreescribe de inmediato el LocalStorage con el nuevo payload encriptado.
+- **Switch "Prueba Serológica Limpia"**: Alterna el estatus de salud pública.
+- **Consola de Privacidad Granular**: Lista de consentimientos específicos (ej. Donación de Órganos, Matchmaking de Emergencia, Ensayos Clínicos). 
+- **Pasaporte Médico de Emergencia (`EmergencyPassport.tsx`)**:
+  - **Qué ve el usuario**: Una tarjeta premium con un código QR dinámico y un temporizador de cuenta regresiva (24 horas).
+  - **Botón "Regenerar Pasaporte"**: Cambia la marca de tiempo y recalcula el hash SHA-256 del consentimiento de forma instantánea.
+  - **Botón "Compartir Enlace"**: Copia al portapapeles una URL de escaneo directo que transfiere la solicitud de acceso al portal médico de emergencias.
+
+---
+
+### 8.4 Portal del Médico (`DoctorPage.tsx` / `DoctorPortal.tsx`)
+La consola administrativa de acreditaciones hospitalarias.
+
+- **Botón "Desplegar Contrato MedLock"**:
+  - **Acción**: Publica una nueva instancia del contrato inteligente Compact en la blockchain local/testnet de Midnight.
+  - **Detrás de escena**: Utiliza tu wallet para pagar el DUST del despliegue y asentar la dirección del contrato en el estado local.
+- **Directorio de Médicos Autorizados (`DoctorDirectory.tsx`)**:
+  - **Botón "+ Nuevo Médico"**: Despliega un formulario para registrar un médico clínico introduciendo su nombre y clave pública hex.
+  - **Botón "Acreditar en Blockchain"**: Lanza una transacción on-chain real que agrega al médico al árbol de Merkle del contrato.
+  - **Botón "Revocar"**:
+    - **Acción**: Lanza la llamada de revocación on-chain al contrato inteligente.
+    - **Resultado**: La clave pública del médico se agrega a la lista de revocados del contrato, inhabilitando su firma de por vida de forma irreversible.
+
+---
+
+### 8.5 Escáner de Emergencia y Matchmaking (`EmergencyPage.tsx`)
+La demostración práctica del protocolo de emergencia.
+
+- **Selector "Elegir Médico que Consulta"**: Permite simular qué médico en el hospital está realizando la consulta (ej. seleccionar a un médico activo vs. un médico revocado para probar la seguridad del circuito).
+- **Selector "Tipo de Sangre Requerido"**: Configura la demanda crítica de la sala de emergencias (ej. `O-` para transfusión universal).
+- **Buscador de Donantes Compatibles (`DonorMatchmaker.tsx`)**:
+  - **Acción**: Simula un pool de donantes locales anonimizados.
+  - **Visual**: Muestra animaciones de escaneo ZK con luces de pulso y detecta candidatos aptos basándose en el tipo de sangre.
+- **Botón "Iniciar Verificación ZK"**:
+  - **Acción**: Dispara el motor de pruebas local (Midnight Proof Server).
+  - **Timeline en Tiempo Real (`ZKProofVisualizer.tsx`)**: Muestra visualmente las 4 etapas de compilación de la prueba ZK en el navegador mediante barras de carga dinámicas.
+  - **Resultado**:
+    - Si el médico es válido, compatible y tiene consentimientos: Muestra un banner verde de **ACCESO PERMITIDO (MATCH SUCCESS)**.
+    - Si el médico ha sido revocado o el tipo de sangre es incompatible: Muestra un banner rojo de **ACCESO DENEGADO (MATCH FAILED)**.
+- **ZK Audit Timeline (`AuditTimeline.tsx`)**:
+  - **Qué ve el usuario**: Una consola con todas las transacciones de auditoría.
+  - **Interacción**: Permite filtrar las acciones on-chain y examinar los hashes de las transacciones y las claves de bloque generadas.
+
+---
+
+## 9. Guía de Prueba Paso a Paso (Demostración Recomendada)
+
+Para demostrar todo el potencial de la dApp a un evaluador, sigue estos pasos:
+
+1. **Conectar**: Haz clic en "Conectar Wallet" en la esquina superior derecha.
+2. **Configurar Datos del Paciente**: Ve a la pestaña **Paciente**. Modifica tu tipo de sangre a `O-` y asegúrate de que el consentimiento de "Acceso de Emergencia" esté activo. Tu código QR del Pasaporte se actualizará de forma dinámica.
+3. **Registrar un Médico**: Copia la dirección pública que se muestra en tu tarjeta de identidad de paciente. Ve a la pestaña **Médicos**, haz clic en "+ Nuevo Médico", pega la dirección y agrégalo. Haz clic en **Acreditar en Blockchain** (se emitirá una transacción de Midnight para registrar el Merkle Root).
+4. **Ejecutar Escaneo de Emergencia**: Ve a la pestaña **Emergencias**. Selecciona el médico recién registrado en el dropdown. Elige como tipo de sangre requerido `O-`. Haz clic en **Iniciar Verificación ZK**. Observa las fases del visualizador ZK. El resultado será verde: **MATCH SUCCESS**.
+5. **Probar la Revocación**: Regresa a la pestaña **Médicos** y haz clic en **Revocar** al lado de tu médico registrado. Espera a que la transacción se confirme en la blockchain.
+6. **Intentar Escaneo con Médico Revocado**: Ve a la pestaña **Emergencias** e inicia una nueva verificación ZK con el mismo médico. El circuito Compact ZK detectará de inmediato la revocación on-chain y denegará el acceso: **MATCH FAILED**.
+7. **Verificar Bitácora de Auditoría**: Examina el timeline al final de la página de emergencias para ver los registros inalterables y los nullifiers on-chain generados.
+
