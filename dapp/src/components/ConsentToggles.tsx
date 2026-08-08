@@ -31,9 +31,9 @@ export const ConsentToggles: React.FC<Props> = ({ consents, onChange }) => {
 
   return (
     <div>
-      {renderToggle('organDonation', 'Organ Donation', 'Allow medical institutions to verify your donor status.')}
-      {renderToggle('emergencyMatching', 'Emergency Matching', 'Enable ZK matching for emergency blood/tissue needs.')}
-      {renderToggle('clinicalTrial', 'Clinical Trials', 'Allow anonymous querying for trial eligibility.')}
+      {renderToggle('organDonation', 'Donación de Órganos', 'Permitir a instituciones médicas verificar tu estatus de donante.')}
+      {renderToggle('emergencyMatching', 'Coincidencia de Emergencia', 'Habilitar verificación ZK para emergencias sanguíneas y de tejidos.')}
+      {renderToggle('clinicalTrial', 'Ensayos Clínicos', 'Permitir consultas anónimas para elegibilidad en ensayos clínicos.')}
     </div>
   );
 };

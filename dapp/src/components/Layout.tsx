@@ -17,10 +17,10 @@ export const Layout: React.FC = () => {
           ◉ MedLock
         </Link>
         <div className="navbar-nav">
-          <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>Home</Link>
-          <Link to="/patient" className={`nav-link ${location.pathname === '/patient' ? 'active' : ''}`}>Patient</Link>
-          <Link to="/doctor" className={`nav-link ${location.pathname === '/doctor' ? 'active' : ''}`}>Doctor</Link>
-          <Link to="/emergency" className={`nav-link ${location.pathname === '/emergency' ? 'active' : ''}`}>Emergency</Link>
+          <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>Inicio</Link>
+          <Link to="/patient" className={`nav-link ${location.pathname === '/patient' ? 'active' : ''}`}>Paciente</Link>
+          <Link to="/doctor" className={`nav-link ${location.pathname === '/doctor' ? 'active' : ''}`}>Médico</Link>
+          <Link to="/emergency" className={`nav-link ${location.pathname === '/emergency' ? 'active' : ''}`}>Emergencias</Link>
         </div>
         <WalletConnector />
       </nav>
@@ -30,7 +30,7 @@ export const Layout: React.FC = () => {
       </main>
 
       <footer className="footer">
-        <p>Built on Midnight Network • Apache 2.0 License • Sovereignty through ZK Cryptography</p>
+        <p>Desarrollado en Midnight Network • Licencia Apache 2.0 • Soberanía mediante Criptografía ZK</p>
       </footer>
     </div>
   );

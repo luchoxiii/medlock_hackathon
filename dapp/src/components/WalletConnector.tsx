@@ -25,7 +25,7 @@ export const WalletConnector: React.FC = () => {
       onClick={connect} 
       disabled={isConnecting}
     >
-      {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+      {isConnecting ? 'Conectando...' : 'Conectar Wallet'}
     </button>
   );
 };

@@ -15,7 +15,7 @@ export const ZKResultMatch: React.FC<Props> = ({ result, isVerifying }) => {
   if (isVerifying) {
     return (
       <div className="zk-banner shimmer-bg" style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
-        Generating ZK Proof...
+        Generando Prueba ZK...
       </div>
     );
   }
@@ -25,12 +25,12 @@ export const ZKResultMatch: React.FC<Props> = ({ result, isVerifying }) => {
   if (result.success) {
     return (
       <div className="zk-banner zk-banner-success">
-        <h4 style={{ fontSize: '1.25rem', marginBottom: '16px' }}>✓ VERIFICATION SUCCESSFUL — MATCH FOUND</h4>
+        <h4 style={{ fontSize: '1.25rem', marginBottom: '16px' }}>✓ VERIFICACIÓN EXITOSA — COINCIDENCIA ENCONTRADA</h4>
         <div style={{ fontSize: '0.875rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div><strong>Criteria:</strong> {result.criteria}</div>
+          <div><strong>Criterio:</strong> {result.criteria}</div>
           <div><strong>Nullifier:</strong> {result.nullifier}</div>
           <div><strong>Proof Hash:</strong> {result.proofHash}</div>
-          <div><strong>Timestamp:</strong> {result.timestamp}</div>
+          <div><strong>Marca de Tiempo:</strong> {result.timestamp}</div>
         </div>
       </div>
     );
@@ -38,8 +38,8 @@ export const ZKResultMatch: React.FC<Props> = ({ result, isVerifying }) => {
 
   return (
     <div className="zk-banner zk-banner-fail">
-      <h4 style={{ fontSize: '1.25rem' }}>✕ VERIFICATION FAILED — NO MATCH</h4>
-      <p style={{ fontSize: '0.875rem', marginTop: '8px' }}>The zero-knowledge proof generated negative result for criteria: {result.criteria}</p>
+      <h4 style={{ fontSize: '1.25rem' }}>✕ VERIFICACIÓN FALLIDA — SIN COINCIDENCIA</h4>
+      <p style={{ fontSize: '0.875rem', marginTop: '8px' }}>La prueba de conocimiento cero generó un resultado negativo para el criterio: {result.criteria}</p>
     </div>
   );
 };
