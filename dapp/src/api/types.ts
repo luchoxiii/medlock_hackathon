@@ -36,6 +36,21 @@ export interface WalletState {
   network: string | null;
 }
 
+export interface ConsentEntry {
+  enabled: boolean;
+  expiration: 'permanent' | '24h' | '48h' | '7d' | '30d';
+  activatedAt: number | null;
+}
+
+export interface GranularConsentConfig {
+  traumatology: ConsentEntry;
+  bloodTransfusion: ConsentEntry;
+  allergyHistory: ConsentEntry;
+  organDonation: ConsentEntry;
+  emergencyMatching: ConsentEntry;
+  clinicalTrial: ConsentEntry;
+}
+
 export interface ConsentConfig {
   organDonation: boolean;
   emergencyMatching: boolean;

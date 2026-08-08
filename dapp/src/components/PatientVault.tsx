@@ -5,8 +5,9 @@
 
 import React, { useState } from 'react';
 import { ConsentToggles } from './ConsentToggles';
-import { ConsentConfig } from '../api/types';
+import { GranularConsentConfig, ConsentEntry } from '../api/types';
 import { useWallet } from '../hooks/useWallet';
+import { EmergencyPassport } from './EmergencyPassport';
 
 export const PatientVault: React.FC = () => {
   const { address } = useWallet();
@@ -16,17 +17,38 @@ export const PatientVault: React.FC = () => {
   const [serologyClean, setSerologyClean] = useState(() => 
     localStorage.getItem('medlock_patient_serology_clean') !== 'false'
   );
-  const [consents, setConsents] = useState<ConsentConfig>(() => {
+  const [consents, setConsents] = useState<GranularConsentConfig>(() => {
     const saved = localStorage.getItem('medlock_patient_consents');
-    return saved ? JSON.parse(saved) : {
-      organDonation: true,
-      emergencyMatching: true,
-      clinicalTrial: false
+    const defaultEntry: ConsentEntry = { enabled: false, expiration: 'permanent', activatedAt: null };
+    
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Check if it's the old format (boolean fields)
+      if (parsed.organDonation !== undefined && typeof parsed.organDonation === 'boolean') {
+        return {
+          organDonation: { ...defaultEntry, enabled: parsed.organDonation, activatedAt: parsed.organDonation ? Date.now() : null },
+          emergencyMatching: { ...defaultEntry, enabled: parsed.emergencyMatching, activatedAt: parsed.emergencyMatching ? Date.now() : null },
+          clinicalTrial: { ...defaultEntry, enabled: parsed.clinicalTrial, activatedAt: parsed.clinicalTrial ? Date.now() : null },
+          traumatology: { ...defaultEntry },
+          bloodTransfusion: { ...defaultEntry },
+          allergyHistory: { ...defaultEntry },
+        };
+      }
+      return parsed as GranularConsentConfig;
+    }
+    
+    return {
+      organDonation: { ...defaultEntry, enabled: true, activatedAt: Date.now() },
+      emergencyMatching: { ...defaultEntry, enabled: true, activatedAt: Date.now() },
+      clinicalTrial: { ...defaultEntry },
+      traumatology: { ...defaultEntry },
+      bloodTransfusion: { ...defaultEntry },
+      allergyHistory: { ...defaultEntry },
     };
   });
 
-  const handleConsentChange = (key: keyof ConsentConfig, value: boolean) => {
-    const nextConsents = { ...consents, [key]: value };
+  const handleConsentChange = (key: keyof GranularConsentConfig, entry: ConsentEntry) => {
+    const nextConsents = { ...consents, [key]: entry };
     setConsents(nextConsents);
     localStorage.setItem('medlock_patient_consents', JSON.stringify(nextConsents));
   };
@@ -99,6 +121,8 @@ export const PatientVault: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <EmergencyPassport consents={consents} />
     </div>
   );
 };
