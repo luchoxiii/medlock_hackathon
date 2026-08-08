@@ -1,11 +1,7 @@
-/*
- * Copyright 2026 MedLock
- * Licensed under the Apache License, Version 2.0
- */
-
 import React, { useState, useEffect } from 'react';
 import { useWallet } from '../hooks/useWallet';
 import { GranularConsentConfig } from '../api/types';
+import { sha256PureJS } from '../api/encryption';
 
 interface EmergencyPassportProps {
   consents: GranularConsentConfig;
@@ -22,12 +18,26 @@ export const EmergencyPassport: React.FC<EmergencyPassportProps> = ({ consents }
 
   const generateHash = async () => {
     const data = JSON.stringify(consents) + address + timestamp;
-    const encoder = new TextEncoder();
-    const dataBuffer = encoder.encode(data);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    setConsentHash(hashHex.substring(0, 16));
+    
+    // Check if secure subtle crypto API is available
+    if (!window.crypto || !window.crypto.subtle) {
+      const hashHex = sha256PureJS(data);
+      setConsentHash(hashHex.substring(0, 16));
+      return;
+    }
+
+    try {
+      const encoder = new TextEncoder();
+      const dataBuffer = encoder.encode(data);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      setConsentHash(hashHex.substring(0, 16));
+    } catch (e) {
+      console.warn('[MedLock] Subtle crypto failed, using pure JS fallback:', e);
+      const hashHex = sha256PureJS(data);
+      setConsentHash(hashHex.substring(0, 16));
+    }
   };
 
   useEffect(() => {
