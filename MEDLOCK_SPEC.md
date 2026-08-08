@@ -1,188 +1,189 @@
-# MedLock — Sovereign Health Vault & ZK Verification Specification
+# MedLock — Especificación de Bóveda de Salud Soberana y Protocolo de Verificación ZK
 
-This document provides a complete, structured, and machine-readable specification of the MedLock decentralized application (dApp). It is designed to be parsed by AI models, developers, or system architects to understand the exact data flows, cryptographic circuits, state variables, and component interfaces of the protocol.
-
----
-
-## 1. Executive Summary
-
-**MedLock** is a privacy-preserving emergency medical access protocol built on the **Midnight Network** (a zero-knowledge Cardano Partnerchain). It solves the critical tension between medical emergency access and patient data privacy:
-- **The Problem**: In emergencies, medical staff need instant access to critical patient data (e.g., blood type, allergies, serology). Current systems either store this data in centralized, vulnerable databases or expose it publicly on blockchained ledgers.
-- **The Solution**: MedLock stores patient data encrypted locally on the patient's device (Local-First). During emergencies, an authorized doctor can run a local Zero-Knowledge Proof (ZKP) verification query. The patient's device generates a ZKP proving blood compatibility, active consent, and doctor accreditation status. Only a boolean validation (`MATCH` / `NO MATCH`) and an anonymous transaction nullifier are written to the blockchain. **Zero raw clinical data is ever exposed, uploaded, or leaked on-chain or off-chain.**
+Este documento proporciona una especificación completa, estructurada y legible por máquinas de la aplicación descentralizada (dApp) MedLock. Está diseñado para ser analizado por modelos de IA, desarrolladores o arquitectos de sistemas con el fin de comprender los flujos de datos exactos, circuitos criptográficos, variables de estado e interfaces de componentes del protocolo.
 
 ---
 
-## 2. Technical Architecture Overview
+## 1. Resumen Ejecutivo
 
-The system consists of three architectural layers:
+**MedLock** es un protocolo de acceso médico de emergencia que preserva la privacidad del paciente, construido sobre la red **Midnight Network** (una cadena asociada de Cardano que utiliza pruebas de conocimiento cero). Resuelve la tensión crítica entre el acceso de emergencia a datos médicos y la privacidad del paciente:
+- **El Problema**: En emergencias, el personal médico necesita acceso instantáneo a datos clínicos vitales (ej. tipo de sangre, alergias, serología). Los sistemas actuales almacenan estos datos en bases de datos centralizadas vulnerables o los exponen públicamente en blockchains tradicionales.
+- **La Solución**: MedLock almacena los datos de los pacientes cifrados localmente en su propio dispositivo (Local-First). En una emergencia, un médico acreditado puede realizar una consulta de verificación local mediante Pruebas de Conocimiento Cero (ZKP). El dispositivo del paciente genera una ZKP que demuestra la compatibilidad sanguínea, el consentimiento activo y la acreditación del médico. Únicamente una validación booleana (`MATCH` / `NO MATCH`) y un nullifier de transacción anónimo se escriben en la blockchain. **Cero datos clínicos en texto plano son expuestos, transmitidos o filtrados en la red.**
+
+---
+
+## 2. Resumen de la Arquitectura Técnica
+
+El sistema se compone de tres capas arquitectónicas:
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│                  FRONTEND (Client)                     │
+│                  FRONTEND (Cliente)                     │
 │  - React 19 + TypeScript + Vite                        │
-│  - Web Crypto API (AES-GCM 256-bit Local Encryption)   │
-│  - Midnight.js SDK & DApp Connector (1AM / Lace)       │
+│  - Web Crypto API (Cifrado local AES-GCM de 256 bits)  │
+│  - SDK Midnight.js y DApp Connector (1AM / Lace)       │
 └───────────────────────┬────────────────────────────────┘
-                        │ Off-chain proofs (ZKP)
+                        │ Pruebas fuera de cadena (ZKP)
                         ▼
 ┌────────────────────────────────────────────────────────┐
-│             DOCKER STACK (Local Proving)               │
-│  - Midnight Proof Server (Client-side prover daemon)   │
+│             DOCKER STACK (Proving Local)               │
+│  - Midnight Proof Server (Servicio de pruebas cliente) │
 └───────────────────────┬────────────────────────────────┘
-                        │ Submits transaction
+                        │ Envío de transacción
                         ▼
 ┌────────────────────────────────────────────────────────┐
 │              MIDNIGHT BLOCKCHAIN (Ledger)              │
-│  - Compact Smart Contract State Management             │
-│  - On-chain Public State (Doctor Merkle Root, Set)      │
-│  - On-chain Private State (Transaction Nullifiers)     │
+│  - Gestión de estado de contrato inteligente Compact   │
+│  - Estado público on-chain (Merkle Root de médicos,   │
+│    Set de revocaciones)                                │
+│  - Estado privado on-chain (Nullifiers de transacciones)│
 └────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 3. Cryptographic State & Data Registry
+## 3. Matriz de Estado Criptográfico y Registro de Datos
 
-### 3.1 Patient Data Visibility Matrix
+### 3.1 Matriz de Visibilidad de Datos del Paciente
 
-| Data Field | Storage Location | Security Protocol | Exposure Level |
+| Campo de Datos | Ubicación de Almacenamiento | Protocolo de Seguridad | Nivel de Exposición |
 |:---|:---|:---|:---|
-| **Patient Name / DNI** | Local Storage only | Encrypted | Never leaves device |
-| **Blood Type & HLA** | Local Storage / ZK Witness | Encrypted | Proved inside ZK circuit; Never revealed |
-| **Serology Status** | Local Storage / ZK Witness | Encrypted | Proved inside ZK circuit; Never revealed |
-| **Donation Consent** | Local Storage / ZK Witness | Encrypted | Proved inside ZK circuit; Never revealed |
-| **Doctor Attestation** | Local Storage / Merkle Proof | Cleartext JSON | Transmitted to Prover to verify credential root |
-| **Doctor Accreditation** | Smart Contract State | Public Merkle Root | Verified cryptographically inside ZK circuit |
-| **Revocation List** | Smart Contract State | Public `Set` | Verified inside ZK circuit to invalidate keys |
-| **Nullifier Hash** | Smart Contract Ledger | Public SHA-256 Hash | Prevent double-submit / replay on-chain |
+| **Nombre / DNI del Paciente** | Solo en Local Storage | Cifrado | Nunca sale del dispositivo |
+| **Tipo de Sangre y HLA** | Local Storage / ZK Witness | Cifrado | Probado en el circuito ZK; Nunca revelado |
+| **Estatus Serológico** | Local Storage / ZK Witness | Cifrado | Probado en el circuito ZK; Nunca revelado |
+| **Consentimientos de Donación**| Local Storage / ZK Witness | Cifrado | Probado en el circuito ZK; Nunca revelado |
+| **Acreditación del Médico** | Local Storage / Merkle Proof | JSON plano | Enviado al Prover para validar ruta Merkle |
+| **Acreditación Médica General**| Estado del Contrato | Merkle Root Público | Verificado criptográficamente en circuito ZK |
+| **Lista de Revocación** | Estado del Contrato | `Set` Público | Verificado en circuito ZK para invalidar llaves |
+| **Hash del Nullifier** | Registro del Contrato | Hash SHA-256 Público | Evita doble envío o replay en la blockchain |
 
 ---
 
-## 4. Smart Contract Specification (`medlock.compact`)
+## 4. Especificación del Contrato Inteligente (`medlock.compact`)
 
-The smart contract is written in **Compact**, Midnight's zero-knowledge contract language.
+El contrato inteligente está escrito en **Compact**, el lenguaje de circuitos de conocimiento cero de Midnight.
 
-### 4.1 On-Chain State Registers
-- `doctorMerkleRoot: Cell<Hash>`: The root hash of the Merkle Tree containing public keys of all globally accredited doctors.
-- `revokedDoctors: Set<Bytes<32>>`: A set containing the commitments (hashed public keys) of doctors whose access has been revoked by the administrator.
+### 4.1 Registros de Estado On-Chain
+- `doctorMerkleRoot: Cell<Hash>`: Hash raíz del Árbol de Merkle que contiene las claves públicas de todos los médicos acreditados a nivel global.
+- `revokedDoctors: Set<Bytes<32>>`: Un conjunto (Set) que almacena los compromisos (hashes de claves públicas) de los médicos cuyo acceso ha sido revocado por el administrador.
 
-### 4.2 Circuit Definitions (ZK Functions)
+### 4.2 Definiciones de Circuitos (Funciones ZK)
 
-#### A. `revoke_doctor` (Administrative circuit)
-- **Input**: `doctorCommitment: Bytes<32>` (SHA-256 commitment of the doctor's public key).
-- **Execution**: Inserts the commitment into the `revokedDoctors` set.
-- **State Impact**: Updates the on-chain revoked set.
+#### A. `revoke_doctor` (Circuito administrativo)
+- **Entrada**: `doctorCommitment: Bytes<32>` (Compromiso SHA-256 de la clave pública del médico).
+- **Ejecución**: Inserta el compromiso en el conjunto `revokedDoctors`.
+- **Impacto de Estado**: Actualiza el set de revocados en la blockchain.
 
-#### B. `verify_emergency_match` (Verification circuit)
-- **Inputs (Public)**:
-  - `requiredBloodType: Bytes<2>` (e.g., "O-")
-  - `doctorPk: Bytes<32>` (Public key of the emergency doctor querying the data)
-- **Inputs (Private / Witnesses)**:
+#### B. `verify_emergency_match` (Circuito de verificación)
+- **Entradas Públicas**:
+  - `requiredBloodType: Bytes<2>` (ej. "O-")
+  - `doctorPk: Bytes<32>` (Clave pública del médico de emergencias que realiza la consulta)
+- **Entradas Privadas (Testigos / Witnesses)**:
   - `patientBloodType: Bytes<2>`
   - `patientSerologyClean: Boolean`
   - `patientConsents: GranularConsentConfig`
-  - `doctorMerkleProof: MerkleProof` (Cryptographic proof that `doctorPk` belongs to the accredited `doctorMerkleRoot`)
-- **Circuit Assertions (ZK Rules)**:
-  1. **Accreditation Check**: Asserts that `doctorMerkleProof` resolves to the current on-chain `doctorMerkleRoot`.
-  2. **Revocation Check**: Asserts that `doctorPk` is **NOT** a member of the on-chain `revokedDoctors` set.
-  3. **Consent Check**: Asserts that the patient's `emergencyMatching` consent is set to `true` and the expiration timestamp is valid.
-  4. **Blood Compatibility Check**: Evaluates if `patientBloodType` is compatible with `requiredBloodType` using a Boolean matrix.
-  5. **Nullifier Generation**: Computes a unique nullifier hash `Hash(patientSecret + epoch)` to prevent replay attacks.
-- **Output**: Returns a boolean `MATCH_SUCCESS` / `MATCH_FAILED` and publishes the nullifier on-chain.
+  - `doctorMerkleProof: MerkleProof` (Prueba criptográfica de que `doctorPk` pertenece a la raíz `doctorMerkleRoot`)
+- **Aserciones del Circuito (Reglas ZK)**:
+  1. **Validación de Acreditación**: Comprueba que la prueba `doctorMerkleProof` resuelva hacia la raíz `doctorMerkleRoot` registrada on-chain.
+  2. **Validación de Revocación**: Comprueba que `doctorPk` **NO** pertenezca al conjunto on-chain `revokedDoctors`.
+  3. **Validación de Consentimiento**: Comprueba que el consentimiento `emergencyMatching` del paciente sea `true` y su marca de tiempo de expiración sea válida.
+  4. **Validación de Compatibilidad Sanguínea**: Evalúa si `patientBloodType` es compatible con `requiredBloodType` a través de una matriz booleana.
+  5. **Generación de Nullifier**: Calcula un hash único `Hash(patientSecret + epoch)` para prevenir ataques de repetición.
+- **Salida**: Retorna un booleano `MATCH_SUCCESS` / `MATCH_FAILED` y publica el nullifier en el ledger on-chain.
 
 ---
 
-## 5. Frontend & Component Specifications
+## 5. Especificación de Componentes del Frontend
 
-### 5.1 Local Cryptographic Vault (`PatientVault.tsx`)
-- **Purpose**: Encrypts and manages the patient's private medical card and granular consents locally.
-- **State Derivation**:
-  - Checks if the Midnight wallet (Lace / 1AM) is connected.
-  - If disconnected: Locks the screen, displaying a glassmorphic shield UI indicating data is safely encrypted.
-  - If connected: Uses the wallet's address/signature as a seed to derive a 256-bit symmetric key.
-- **Encryption Algorithm**:
-  - **Secure Context (Localhost/HTTPS)**: AES-GCM (256-bit) using Web Crypto API.
-  - **Non-Secure Context (Local LAN/IP Testing)**: Automatic fallback to a pure JavaScript SHA-256 key-derivation and stream XOR cipher to avoid browser sandbox crashes.
+### 5.1 Bóveda Criptográfica Local (`PatientVault.tsx`)
+- **Propósito**: Cifra y gestiona la tarjeta médica privada del paciente y sus consentimientos granulares de forma local.
+- **Derivación de Estado**:
+  - Detecta si la wallet de Midnight (Lace / 1AM) está conectada.
+  - Si está desconectada: Bloquea la pantalla, mostrando una interfaz de escudo de cristal indicando que los datos están cifrados de forma segura.
+  - Si está conectada: Utiliza la dirección/firma de la wallet como semilla para derivar una clave simétrica de 256 bits.
+- **Algoritmo de Cifrado**:
+  - **Contexto Seguro (Localhost/HTTPS)**: AES-GCM (256-bit) a través de la API Web Crypto.
+  - **Contexto No Seguro (Redes Locales/IPs sin HTTPS)**: Fallback automático a SHA-256 puro en JS y cifrado de flujo XOR para evitar caídas en el entorno aislado del navegador.
 
-### 5.2 Interactive ZK Proof Visualizer (`ZKProofVisualizer.tsx`)
-- **Purpose**: Displays the status of client-side ZK proof compilation to the emergency responder.
-- **Pipeline States**:
-  1. **Witness Extraction (25% progress)**: Fetches encrypted consents and decrypts them. Resolves the doctor's Merkle Proof paths.
-  2. **State Sanitization (50% progress)**: Masks raw medical values, preparing the public inputs for the ZK compiler.
-  3. **Proof Generation (75% progress)**: Relays compiling data to the client's local Midnight Proof Server (`http://localhost:31801`) to generate the mathematical ZKP.
-  4. **Nullifier Resolution (100% progress)**: Publishes the generated verification transaction to the Midnight blockchain.
+### 5.2 Visualizador Interactivo de Pruebas ZK (`ZKProofVisualizer.tsx`)
+- **Propósito**: Muestra en tiempo real el progreso de la compilación de la prueba ZK en el dispositivo para el personal médico.
+- **Fases del Pipeline**:
+  1. **Extracción de Testigos (25%)**: Descifra consentimientos locales y calcula las rutas del Merkle Proof del médico.
+  2. **Sanitización de Estado (50%)**: Enmascara los datos clínicos, preparando los inputs públicos del circuito ZK.
+  3. **Generación de Pruebas (75%)**: Transmite los datos al Midnight Proof Server local (`http://localhost:31801`) para compilar la ZKP.
+  4. **Resolución en Cadena (100%)**: Publica la transacción de verificación en la blockchain de Midnight.
 
-### 5.3 Doctor Directory & Administrative Console (`DoctorDirectory.tsx`)
-- **Purpose**: Allows hospital administrators to add accredited doctor keys to the Merkle Tree or revoke them on-chain.
-- **Revocation Logic**:
-  - Fetches the doctor's public key.
-  - Calls `revokeAuthorizedDoctor()` from the contract hooks.
-  - Triggers the Compact circuit `revoke_doctor`, writing the key to the public `revokedDoctors` ledger.
+### 5.3 Directorio de Médicos y Consola Administrativa (`DoctorDirectory.tsx`)
+- **Propósito**: Permite a los administradores de hospitales registrar médicos autorizados en el árbol Merkle o revocar su acceso en la blockchain.
+- **Lógica de Revocación**:
+  - Extrae la clave pública del médico.
+  - Ejecuta la función `revokeAuthorizedDoctor()` a través de los hooks del contrato.
+  - Activa el circuito Compact `revoke_doctor`, escribiendo el compromiso en el ledger público de revocaciones.
 
-### 5.4 ZK Audit Timeline Ledger (`AuditTimeline.tsx`)
-- **Purpose**: Provides a tamper-proof cryptographical history log of emergency access events.
-- **Data Log Fields**:
-  - `timestamp`: Relative date/time of access.
+### 5.4 Registro de Auditoría ZK (`AuditTimeline.tsx`)
+- **Propósito**: Proporciona un registro histórico criptográfico e inalterable de los accesos de emergencia.
+- **Campos Registrados**:
+  - `timestamp`: Fecha/hora relativa del acceso.
   - `eventType`: `Verification` / `Accreditation` / `Revocation`.
-  - `txHash`: Truncated hash of the on-chain transaction.
-  - `blockNumber`: Midnight blockchain block height.
-  - `nullifier`: Verification nullifier proving compliance.
+  - `txHash`: Hash truncado de la transacción on-chain.
+  - `blockNumber`: Altura de bloque en la blockchain de Midnight.
+  - `nullifier`: Nullifier de la prueba ZK para auditorías de cumplimiento.
 
 ---
 
-## 6. End-to-End Technical Data Flow
+## 6. Flujo de Datos Técnico de Extremo a Extremo
 
-The following sequence details how an emergency query is executed:
+La siguiente secuencia detalla la ejecución de una consulta de emergencia:
 
 ```
-[ER Doctor Page]                  [Patient Vault]               [Proof Server]             [Midnight Ledger]
+[Médico Portal]                    [Bóveda Paciente]            [Proof Server]             [Midnight Ledger]
        │                                 │                             │                           │
-       │ 1. Request Match (O-)           │                             │                           │
+       │ 1. Solicitar Match (O-)         │                             │                           │
        ├────────────────────────────────>│                             │                           │
-       │                                 │ 2. Check Wallet Connected   │                           │
-       │                                 │ 3. Decrypt consents & HLA   │                           │
+       │                                 │ 2. Detectar Wallet y Llaves │                           │
+       │                                 │ 3. Descifrar perfil y HLA   │                           │
        │                                 │                             │                           │
-       │                                 │ 4. Send witnesses & inputs  │                           │
+       │                                 │ 4. Enviar testigos e inputs │                           │
        │                                 ├────────────────────────────>│                           │
-       │                                 │                             │ 5. Compile ZK Proof       │
-       │                                 │                             │    - Verify signature     │
-       │                                 │                             │    - Verify non-revocation│
-       │                                 │                             │    - Evaluate blood matrix│
+       │                                 │                             │ 5. Compilar Prueba ZK     │
+       │                                 │                             │    - Verificar firma      │
+       │                                 │                             │    - Validar no-revocado  │
+       │                                 │                             │    - Correr matriz sangre │
        │                                 │                             │                           │
-       │                                 │                             │ 6. Send ZKP Transaction   │
+       │                                 │                             │ 6. Enviar Transacción ZKP │
        │                                 │                             ├──────────────────────────>│
-       │                                 │                             │                           │ 7. Verify Proof
-       │                                 │                             │                           │ 8. Record Nullifier
-       │                                 │ 9. Return Boolean Match     │                           │
+       │                                 │                             │                           │ 7. Validar Prueba
+       │                                 │                             │                           │ 8. Guardar Nullifier
+       │                                 │ 9. Retornar Boolean Match   │                           │
        │<────────────────────────────────┼─────────────────────────────┼───────────────────────────┤
        │                                 │                             │                           │
 ```
 
-1. **Query Trigger**: The ER Doctor scans the patient's NFC/QR emergency passport. The portal requests a match verification for "O-" blood.
-2. **Decryption**: The patient's local vault detects the session, derives the AES-GCM key, and decrypts the consents and blood type.
-3. **ZKP Compile**: The patient's browser calls the Midnight Proof Server, supplying the doctor's credentials, the patient's parameters as witnesses, and the required blood type.
-4. **On-Chain Assertion**: The Midnight blockchain evaluates the proof, checks that the doctor is not revoked on-chain, verifies the proof matches the authorized Merkle root, records the nullifier, and returns a transaction success token.
-5. **Match Resolution**: The ER portal receives the success token and displays `COMPATIBLE` / `INCOMPATIBLE`. Raw medical details never leave the patient's device.
+1. **Gatillo de Consulta**: El médico de emergencias escanea el pasaporte NFC/QR. El portal solicita una verificación de compatibilidad para sangre "O-".
+2. **Descifrado**: La bóveda local del paciente detecta la sesión, deriva la clave simétrica y descifra los consentimientos y el perfil sanguíneo.
+3. **Compilación de ZKP**: El navegador del paciente invoca al Midnight Proof Server local, enviando las credenciales del médico, los datos privados del paciente como testigos y el tipo de sangre requerido.
+4. **Verificación On-Chain**: La blockchain de Midnight evalúa la prueba matemática, verifica que el médico no esté revocado, comprueba que pertenezca al árbol de acreditados, asienta el nullifier en el ledger y retorna el éxito de la transacción.
+5. **Resolución**: El portal médico recibe la confirmación y muestra `COMPATIBLE` o `INCOMPATIBLE`. Ningún dato médico privado salió jamás del dispositivo del paciente.
 
 ---
 
-## 7. Build and Compilation Guide
+## 7. Guía de Construcción y Compilación
 
-### 7.1 Smart Contract Compilation
+### 7.1 Compilación del Contrato Inteligente
 ```bash
 cd contract
 compact compile src/medlock.compact build
 ```
 
-### 7.2 Bindings Distribution
-To update the DApp with compiled contract assets, the following directories must be synced:
-- Copy TS bindings: `cp -R build/managed/medlock ../dapp/src/managed/`
-- Copy Prover ZKIR binaries: `cp -R build/zkdir/medlock/* ../dapp/public/zk/medlock/`
+### 7.2 Distribución de Artefactos de Compilación
+Para sincronizar el Frontend con el contrato inteligente compilado:
+- Copiar enlaces de TypeScript: `cp -R build/managed/medlock ../dapp/src/managed/`
+- Copiar binarios ZKIR del Prover: `cp -R build/zkdir/medlock/* ../dapp/public/zk/medlock/`
 
-### 7.3 Frontend Compilation & Optimization
+### 7.3 Compilación y Optimización del Frontend
 ```bash
 cd dapp
 npm install
 npm run build
 ```
-- Vite compiles and outputs chunks. The Ledger WASM engines (`@midnight-ntwrk/ledger-v8`) are loaded statically to avoid Vite WASM prototype mismatch errors.
+- Vite compila los recursos estáticos. Los motores WASM del Ledger (`@midnight-ntwrk/ledger-v8`) se importan de forma estática en la cabecera para evitar inconsistencias de prototipo de WebAssembly entre dependencias.
